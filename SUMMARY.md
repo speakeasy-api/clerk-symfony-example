@@ -18,9 +18,6 @@ This Symfony 7 project integrates with Clerk for authentication. Here's a breakd
 - **Environment Variables (`.env`)**: Contains Clerk configuration (secret key and authorized parties).
 - **CORS Configuration (`config/packages/nelmio_cors.yaml`)**: Configures Cross-Origin Resource Sharing for API access from other domains.
 
-### Public-facing content
-
-- **Landing Page (`public/index.html`)**: A simple HTML page with documentation about the API endpoints.
 
 ## How Authentication Works
 

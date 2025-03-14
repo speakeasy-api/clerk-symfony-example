@@ -9,6 +9,15 @@ Integration of [Clerk](https://clerk.com/) authentication with Symfony 7 backend
 - Protected API endpoints
 - CORS support
 
+## Project Structure
+
+This Symfony 7 project consists of these key components:
+
+- **ClerkAuthenticator** (`src/Security/ClerkAuthenticator.php`): Custom authenticator validating Clerk JWT tokens
+- **Security Configuration** (`config/packages/security.yaml`): Configures security system to use the authenticator
+- **ProtectedController** (`src/Controller/ProtectedController.php`): Contains API endpoints
+- **CORS Configuration** (`config/packages/nelmio_cors.yaml`): Configures cross-origin resource sharing
+
 ## Authentication Flow
 
 ```mermaid
@@ -48,13 +57,18 @@ sequenceDiagram
 
 ## How Authentication Works
 
-1. **Token Validation**: When a request arrives with a Bearer token, the `ClerkAuthenticator` validates it using Clerk's SDK.
+1. Client obtains a JWT token from Clerk's frontend SDK
+2. Client includes this token in the `Authorization` header when making requests
+3. The `ClerkAuthenticator` validates the token using Clerk's PHP SDK
+4. If valid, the authenticated user identity is made available to controllers
+5. Protection is implemented through:
+   - Access Control Lists in `security.yaml` for URL patterns
+   - Method-level `#[IsGranted('IS_AUTHENTICATED_FULLY')]` attribute
 
-2. **Endpoint Protection**: Symfony endpoints are protected in two ways:
-   - Access Control Lists in `security.yaml` protect entire URL patterns
-   - Individual controller methods use `#[IsGranted('IS_AUTHENTICATED_FULLY')]` attribute to require authentication
+## API Endpoints
 
-3. **User Identity**: After successful authentication, controllers can access the user identity via `$this->getUser()->getUserIdentifier()`.
+- **GET /api/clerk-jwt**: Returns the user ID if authenticated
+- **GET /api/get-gated**: Returns protected data (requires authentication)
 
 ## Setup
 
@@ -83,26 +97,28 @@ import { useAuth } from '@clerk/clerk-react';
 
 function ApiExample() {
   const { getToken } = useAuth();
-   if (getToken) 
-    {
-    // get the userId or null if the token is invalid
-    let res = await fetch("http://localhost:8000/api/clerk-jwt", {
-        headers: {
-            "Authorization": `Bearer ${await getToken()}`
-        }
-    })
-    console.log(await res.json()) // {userId: 'the_user_id_or_null'}
+  
+  const fetchData = async () => {
+    if (getToken) {
+      // Get the userId or null if the token is invalid
+      let res = await fetch("http://localhost:8000/api/clerk-jwt", {
+          headers: {
+              "Authorization": `Bearer ${await getToken()}`
+          }
+      });
+      console.log(await res.json()); // {userId: 'the_user_id_or_null'}
 
-    // get gated data or a 401 Unauthorized if the token is not valid
-    res = await fetch("http://localhost:8000/api/get-gated", {
-        headers: {
-            "Authorization": `Bearer ${await getToken()}`
-        }
-    })
-    if (res.ok) {
-        console.log(await res.json()) // {foo: "bar"}
-    } else {
-        // token was invalid
+      // Get gated data or a 401 Unauthorized if the token is not valid
+      res = await fetch("http://localhost:8000/api/get-gated", {
+          headers: {
+              "Authorization": `Bearer ${await getToken()}`
+          }
+      });
+      if (res.ok) {
+          console.log(await res.json()); // {foo: "bar"}
+      } else {
+          // Token was invalid
+      }
     }
   };
   
