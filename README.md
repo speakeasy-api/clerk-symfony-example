@@ -83,19 +83,26 @@ import { useAuth } from '@clerk/clerk-react';
 
 function ApiExample() {
   const { getToken } = useAuth();
-  
-  const fetchData = async () => {
-    const token = await getToken();
-    
-    const response = await fetch('http://localhost:8000/api/get-gated', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log(data);
+   if (getToken) 
+    {
+    // get the userId or null if the token is invalid
+    let res = await fetch("http://localhost:8000/api/clerk-jwt", {
+        headers: {
+            "Authorization": `Bearer ${await getToken()}`
+        }
+    })
+    console.log(await res.json()) // {userId: 'the_user_id_or_null'}
+
+    // get gated data or a 401 Unauthorized if the token is not valid
+    res = await fetch("http://localhost:8000/api/get-gated", {
+        headers: {
+            "Authorization": `Bearer ${await getToken()}`
+        }
+    })
+    if (res.ok) {
+        console.log(await res.json()) // {foo: "bar"}
+    } else {
+        // token was invalid
     }
   };
   
