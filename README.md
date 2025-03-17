@@ -44,44 +44,6 @@ $ php -S localhost:8000 -t public/
 
 The API will be available at http://localhost:8000
 
-## How It Works
-
-Authentication flow:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as Client Browser
-    participant CORS as NelmioCorsBundle
-    participant Auth as Symfony Security
-    participant Clerk as ClerkAuthenticator
-    participant Cont as ProtectedController
-      
-    Client->>CORS: Request with token
-    Note over Client,CORS: Authorization: Bearer {jwt_token}
-    
-    CORS->>CORS: Handle CORS headers
-    CORS->>Auth: Forward request
-    
-    Auth->>Clerk: supports(request)?
-    Clerk-->>Auth: true (has Authorization header)
-    
-    Auth->>Clerk: authenticate(request)
-    Clerk->>Clerk: Extract token from header
-    Clerk->>Clerk: Verify JWT using Clerk SDK
-    
-    alt Valid Token
-        Clerk->>Clerk: Create user object
-        Clerk-->>Auth: Return authenticated passport
-        Auth->>Auth: Store token in security context
-        Auth->>Cont: Forward authenticated request
-        Cont->>Cont: Access user via getUser()
-        Cont-->>Client: Return protected data
-    else Invalid Token
-        Clerk-->>Auth: Throw authentication exception
-        Auth-->>Client: Return 401 Unauthorized
-    end
-```
 
 ## Frontend Integration
 
