@@ -1,96 +1,91 @@
 # Clerk Symfony Example
 
-Integration of [Clerk](https://clerk.com/) authentication with Symfony 7 backend.
+A demonstration of using Clerk JWT authentication with Symfony 7. This example shows how to integrate Clerk's user authentication with a Symfony backend API.
 
-## Features
+## Installation
 
-- JWT token validation
-- Symfony security integration
-- Protected API endpoints
-- CORS support
+After cloning this repository:
 
-## Project Structure
-
-This Symfony 7 project consists of these key components:
-
-- **ClerkAuthenticator** (`src/Security/ClerkAuthenticator.php`): Custom authenticator validating Clerk JWT tokens
-- **Security Configuration** (`config/packages/security.yaml`): Configures security system to use the authenticator
-- **ProtectedController** (`src/Controller/ProtectedController.php`): Contains API endpoints
-- **CORS Configuration** (`config/packages/nelmio_cors.yaml`): Configures cross-origin resource sharing
-
-## Authentication Flow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User as User (Browser) 
-    participant CORS as NelmioCorsBundle
-    participant Auth as Symfony Security
-    participant ClerkAuth as ClerkAuthenticator
-    participant Controller as Protected Controller
-      
-    User->>CORS: Request with token
-    Note over User,CORS: Authorization: Bearer {jwt_token}
-    
-    CORS->>CORS: Handle CORS headers
-    CORS->>Auth: Forward request
-    
-    Auth->>ClerkAuth: supports(request)?
-    ClerkAuth-->>Auth: true (has Authorization header)
-    
-    Auth->>ClerkAuth: authenticate(request)
-    ClerkAuth->>ClerkAuth: Extract token from header
-    ClerkAuth->>ClerkAuth: Verify JWT using Clerk SDK
-    
-    alt Valid Token
-        ClerkAuth->>ClerkAuth: Create user object
-        ClerkAuth-->>Auth: Return authenticated passport
-        Auth->>Auth: Store token in security context
-        Auth->>Controller: Forward authenticated request
-        Controller->>Controller: Access user via getUser()
-        Controller-->>User: Return protected data
-    else Invalid Token
-        ClerkAuth-->>Auth: Throw authentication exception
-        Auth-->>User: Return 401 Unauthorized
-    end
-```
-
-## How Authentication Works
-
-1. Client obtains a JWT token from Clerk's frontend SDK
-2. Client includes this token in the `Authorization` header when making requests
-3. The `ClerkAuthenticator` validates the token using Clerk's PHP SDK
-4. If valid, the authenticated user identity is made available to controllers
-5. Protection is implemented through:
-   - Access Control Lists in `security.yaml` for URL patterns
-   - Method-level `#[IsGranted('IS_AUTHENTICATED_FULLY')]` attribute
-
-## API Endpoints
-
-- **GET /api/clerk-jwt**: Returns the user ID if authenticated
-- **GET /api/get-gated**: Returns protected data (requires authentication)
-
-## Setup
-
-1. Install dependencies:
 ```bash
-composer install
+$ composer install
 ```
 
-2. Configure in `.env.local`:
+## Configuration
+
+Set the required environment variables in your `.env.local` file:
+
 ```
 CLERK_SECRET_KEY=your_clerk_secret_key
 CLERK_AUTHORIZED_PARTIES=http://localhost:5173
 ```
 
-3. Start server:
-```bash
-symfony server:start
+The configuration is automatically loaded via `config/services.yaml`:
+
+```yaml
+App\Security\ClerkAuthenticator:
+    arguments:
+        $secretKey: '%env(CLERK_SECRET_KEY)%'
+        $authorizedParties: '%env(CLERK_AUTHORIZED_PARTIES)%'
 ```
 
-## Usage
+## Running
 
-From a React application:
+Start the Symfony development server:
+
+```bash
+$ symfony server:start
+```
+
+Or if you don't have the Symfony CLI:
+
+```bash
+$ php -S localhost:8000 -t public/
+```
+
+The API will be available at http://localhost:8000
+
+## How It Works
+
+Authentication flow:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Client Browser
+    participant CORS as NelmioCorsBundle
+    participant Auth as Symfony Security
+    participant Clerk as ClerkAuthenticator
+    participant Cont as ProtectedController
+      
+    Client->>CORS: Request with token
+    Note over Client,CORS: Authorization: Bearer {jwt_token}
+    
+    CORS->>CORS: Handle CORS headers
+    CORS->>Auth: Forward request
+    
+    Auth->>Clerk: supports(request)?
+    Clerk-->>Auth: true (has Authorization header)
+    
+    Auth->>Clerk: authenticate(request)
+    Clerk->>Clerk: Extract token from header
+    Clerk->>Clerk: Verify JWT using Clerk SDK
+    
+    alt Valid Token
+        Clerk->>Clerk: Create user object
+        Clerk-->>Auth: Return authenticated passport
+        Auth->>Auth: Store token in security context
+        Auth->>Cont: Forward authenticated request
+        Cont->>Cont: Access user via getUser()
+        Cont-->>Client: Return protected data
+    else Invalid Token
+        Clerk-->>Auth: Throw authentication exception
+        Auth-->>Client: Return 401 Unauthorized
+    end
+```
+
+## Frontend Integration
+
+From a Clerk React frontend:
 
 ```javascript
 import { useAuth } from '@clerk/clerk-react';
@@ -124,4 +119,36 @@ function ApiExample() {
   
   return <button onClick={fetchData}>Fetch Data</button>;
 }
-``` 
+```
+
+## API Reference
+
+Available endpoints:
+
+- `GET /api/clerk-jwt` - Returns the authenticated user ID
+- `GET /api/get-gated` - Returns protected data (requires authentication)
+
+## Implementation Details
+
+Key files:
+
+- `src/Security/ClerkAuthenticator.php` - Handles JWT validation and authentication
+- `src/Controller/ProtectedController.php` - Contains protected API endpoints
+- `config/packages/nelmio_cors.yaml` - Manages CORS configuration
+- `config/packages/security.yaml` - Configures security system and access control
+
+## ⚠️ Production Warning
+
+This project is not optimized for production and does not address all best practices that should be configured in a production app. It serves as a design template and should be given appropriate consideration before being used in production.
+
+Issues to address for production use:
+- CORS configuration is specific to development environments
+- No HTTPS enforcement
+- Minimal error handling (especially 401 errors)
+- Using development server settings
+
+For production deployment:
+1. Configure proper CORS settings for your specific domains
+2. Enforce HTTPS for all API communication
+3. Implement comprehensive error handling
+4. Use a production-grade web server instead of the built-in development server 
