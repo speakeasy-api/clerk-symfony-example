@@ -46,24 +46,16 @@ class ClerkAuthenticator extends AbstractAuthenticator implements Authentication
         try {
             
             $authHeader = $request->headers->get('Authorization');
-            error_log('Auth header: ' . ($authHeader ? substr($authHeader, 0, 20) . '...' : 'none'));
-            
-            
             $requestState = AuthenticateRequest::authenticateRequest(
                 $request,
                 new AuthenticateRequestOptions(
                     secretKey: $this->secretKey,
                     authorizedParties: $this->authorizedParties
                 )
-            );
-            
-            error_log('Request state: ' . ($requestState ? 'valid' : 'invalid'));
-            
-            
+            ); 
+
             if ($requestState && $requestState->isSignedIn()) {
-                $payload = $requestState->getPayload();
-                error_log('User authenticated: ' . $payload->sub);
-                
+                $payload = $requestState->getPayload(); 
                 
                 return new SelfValidatingPassport(
                     new UserBadge($payload->sub, function (string $userIdentifier) {
@@ -91,11 +83,8 @@ class ClerkAuthenticator extends AbstractAuthenticator implements Authentication
                 );
             }
             
-            
-            error_log('Authentication failed: Not signed in');
             throw new AuthenticationException('Invalid credentials');
         } catch (\Exception $e) {
-            error_log('Authentication error: ' . $e->getMessage());
             throw new AuthenticationException('Authentication error: ' . $e->getMessage());
         }
     }
