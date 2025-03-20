@@ -83,7 +83,12 @@ class ClerkAuthenticator extends AbstractAuthenticator implements Authentication
                 );
             }
             
-            throw new AuthenticationException('Invalid credentials');
+            // Include error reason in the exception message if available
+            $errorReason = $requestState && method_exists($requestState, 'getErrorReason') 
+                ? $requestState->getErrorReason() 
+                : 'User not signed in';
+                
+            throw new AuthenticationException('Invalid credentials: ' . $errorReason);
         } catch (\Exception $e) {
             throw new AuthenticationException('Authentication error: ' . $e->getMessage());
         }
